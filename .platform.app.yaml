@@ -1,0 +1,123 @@
+# This file describes an application. You can have multiple applications
+# in the same project.
+
+
+# The name of this app. Must be unique within a project.
+name: mymagento
+
+# The toolstack used to build the application.
+type: php:5.6
+build:
+    flavor: composer
+
+# Enable extensions required by Magento 2
+runtime:
+    extensions:
+        - xsl
+
+# The relationships of the application with services or other applications.
+# The left-hand side is the name of the relationship as it will be exposed
+# to the application in the PLATFORM_RELATIONSHIPS variable. The right-hand
+# side is in the form `<service name>:<endpoint name>`.
+relationships:
+    database: "mysql:mysql"
+    solr: "solr:solr"
+    rediscache: "rediscache:redis"
+    redisfpc: "redisfpc:redis"
+    redissession: "redissession:redis"
+
+# The configuration of app when it is exposed to the web.
+web:
+    # The public directory of the app, relative to its root.
+    document_root: "/"
+    # The front-controller script to send non-static requests to.
+    passthru: "/index.php"
+    whitelist:
+        # CSS and Javascript.
+        - \.css$
+        - \.js$
+        - \.map$
+        - \.hbs$
+
+         # image/* types.
+        - \.gif$
+        - \.jpe?g$
+        - \.png$
+        - \.tiff?$
+        - \.wbmp$
+        - \.ico$
+        - \.jng$
+        - \.bmp$
+        - \.svgz?$
+
+        # audio/* types.
+        - \.midi?$
+        - \.mpe?ga$
+        - \.mp2$
+        - \.mp3$
+        - \.m4a$
+        - \.ra$
+        - \.weba$
+
+        # video/* types.
+        - \.3gpp?$
+        - \.mp4$
+        - \.mpe?g$
+        - \.mpe$
+        - \.ogv$
+        - \.mov$
+        - \.webm$
+        - \.flv$
+        - \.mng$
+        - \.asx$
+        - \.asf$
+        - \.wmv$
+        - \.avi$
+
+        # application/ogg.
+        - \.ogx$
+
+        # application/x-shockwave-flash.
+        - \.swf$
+
+        # application/java-archive.
+        - \.jar$
+
+        # fonts types.
+        - \.ttf$
+        - \.eot$
+        - \.woff$
+        - \.otf$
+
+        # document types
+        - \.htm$
+        - \.html$
+
+        # robots.txt.
+        - /robots\.txt$
+
+# The size of the persistent disk of the application (in MB).
+disk: 2048
+
+# The mounts that will be performed when the package is deployed.
+mounts:
+    "/public/var": "shared:files/var"
+    "/public/app/etc": "shared:files/etc"
+    "/public/pub": "shared:files/pub"
+
+# The hooks executed at various points in the lifecycle of the application.
+hooks:
+    # We run build hooks before your application has been packaged.
+    build: |
+        cd ~/public
+        /usr/bin/php ./magento-build.php
+    # We run deploy hook after your application has been deployed and started.
+    deploy: |
+        cd ~//public
+        /usr/bin/php ./magento-deploy.php
+# Default Magento cron job
+# @todo migrate cron job for Magento 2
+#crons:
+#    mymagento:
+#        spec: "*/1 * * * *"
+#        cmd: "cd public ; sh cron.sh"
