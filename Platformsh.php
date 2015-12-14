@@ -194,6 +194,10 @@ class Platformsh
             --admin-email=$this->adminEmail \
             --admin-password=$this->adminPassword"
         );
+
+        $this->execute(
+            "cd bin/; /usr/bin/php ./magento setup:static-content:deploy"
+        );
     }
 
     /**

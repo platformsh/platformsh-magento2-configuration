@@ -13,7 +13,9 @@ build:
 # Enable extensions required by Magento 2
 runtime:
     extensions:
+        - redis
         - xsl
+        - json
 
 # The relationships of the application with services or other applications.
 # The left-hand side is the name of the relationship as it will be exposed
@@ -115,9 +117,14 @@ hooks:
     deploy: |
         cd ~//public
         /usr/bin/php ./magento-deploy.php
-# Default Magento cron job
-# @todo migrate cron job for Magento 2
-#crons:
-#    mymagento:
-#        spec: "*/1 * * * *"
-#        cmd: "cd public ; sh cron.sh"
+# Default Magento 2 cron jobs
+crons:
+    cronrun:
+        spec: "*/1 * * * *"
+        cmd: "cd ~/public ; /usr/bin/php bin/magento cron:run"
+    cron:
+        spec: "*/1 * * * *"
+        cmd: "cd ~/public ; /usr/bin/php update/cron.php"
+    cronsetup:
+        spec: "*/1 * * * *"
+        cmd: "cd ~/public ; /usr/bin/php bin/magento setup:cron:run"
