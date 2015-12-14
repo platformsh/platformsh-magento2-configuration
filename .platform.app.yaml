@@ -26,7 +26,6 @@ relationships:
     solr: "solr:solr"
     rediscache: "rediscache:redis"
     redisfpc: "redisfpc:redis"
-    redissession: "redissession:redis"
 
 # The configuration of app when it is exposed to the web.
 web:

@@ -285,8 +285,6 @@ class Platformsh
 
     /**
      * Update env.php file content
-     * 
-     * @todo migrate for Magento 2
      */
     protected function updateConfiguration()
     {
@@ -300,21 +298,27 @@ class Platformsh
         $config['db']['connection']['default']['host'] = $this->dbHost;
         $config['db']['connection']['default']['dbname'] = $this->dbName;
 
-// @todo finish redis
-//        if ('Cm_Cache_Backend_Redis' == $cacheBackend) {
-//            $cacheConfig = $config->xpath('/config/global/cache/backend_options')[0];
-//            $fpcConfig = $config->xpath('/config/global/full_page_cache/backend_options')[0];
-//            $sessionConfig = $config->xpath('/config/global/redis_session')[0];
-//
-//            $cacheConfig->port = $this->redisCachePort;
-//            $cacheConfig->server = $this->redisCacheHost;
-//
-//            $fpcConfig->port = $this->redisFpcPort;
-//            $fpcConfig->server = $this->redisFpcHost;
-//
-//            $sessionConfig->port = $this->redisSessionPort;
-//            $sessionConfig->host = $this->redisSessionHost;
-//        }
+        if (
+            isset($config['cache']['frontend']['default']['backend']) &&
+            isset($config['cache']['frontend']['default']['backend_options']) &&
+            'Cm_Cache_Backend_Redis' == $config['cache']['frontend']['default']['backend']
+        ) {
+            $this->log("Updating Redis cache configuration.");
+
+            $config['cache']['frontend']['default']['backend_options']['server'] = $this->redisCacheHost;
+            $config['cache']['frontend']['default']['backend_options']['port'] = $this->redisCachePort;
+        }
+
+        if (
+            isset($config['cache']['frontend']['page_cache']['backend']) &&
+            isset($config['cache']['frontend']['page_cache']['backend_options']) &&
+            'Cm_Cache_Backend_Redis' == $config['cache']['frontend']['page_cache']['backend']
+        ) {
+            $this->log("Updating Redis page cache configuration.");
+
+            $config['cache']['frontend']['page_cache']['backend_options']['server'] = $this->redisFpcHost;
+            $config['cache']['frontend']['page_cache']['backend_options']['port'] = $this->redisFpcPort;
+        }
 
         $updatedConfig = '<?php'  . "\n" . 'return ' . var_export($config, true) . ';';
 
