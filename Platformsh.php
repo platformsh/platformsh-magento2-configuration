@@ -128,7 +128,7 @@ class Platformsh
             $this->log(sprintf('Copied directory: %s', $dir));
         }
 
-        if (!file_exists('app/etc/config.php')) {
+        if (!file_exists('app/etc/env.php')) {
             $this->installMagento();
         } else {
             $this->updateMagento();
@@ -170,7 +170,7 @@ class Platformsh
      */
     protected function installMagento()
     {
-        $this->log("File config.php does not exist. Installing Magento.");
+        $this->log("File env.php does not exist. Installing Magento.");
 
         $urlUnsecure = $this->urls['unsecure'][''];
         $urlSecure = $this->urls['secure'][''];
@@ -195,9 +195,7 @@ class Platformsh
             --admin-password=$this->adminPassword"
         );
 
-        $this->execute(
-            "cd bin/; /usr/bin/php ./magento setup:static-content:deploy"
-        );
+        $this->deployStaticContent();
     }
 
     /**
@@ -205,7 +203,7 @@ class Platformsh
      */
     protected function updateMagento()
     {
-        $this->log("File config.php exists.");
+        $this->log("File env.php exists.");
 
         $this->updateConfiguration();
 
@@ -214,6 +212,8 @@ class Platformsh
         $this->updateUrls();
 
         $this->clearCache();
+
+        $this->deployStaticContent();
     }
 
     /**
@@ -221,12 +221,9 @@ class Platformsh
      */
     protected function updateDatabaseConfiguration()
     {
-        // @todo migrate for Magento 2
-        return;
-
         $this->log("Updating database configuration.");
 
-        $this->execute("mysql -u user -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername', password = md5('$this->adminPassword') where user_id = '1';\" $this->dbName");
+        $this->execute("mysql -u user -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername' where user_id = '1';\" $this->dbName");
     }
 
     /**
@@ -234,9 +231,6 @@ class Platformsh
      */
     protected function updateUrls()
     {
-        // @todo migrate for Magento 2
-        return;
-
         foreach ($this->urls as $urlType => $urls) {
             foreach ($urls as $route => $url) {
                 $prefix = 'unsecure' === $urlType ? self::PREFIX_UNSECURE : self::PREFIX_SECURE;
@@ -261,55 +255,70 @@ class Platformsh
 
     /**
      * Clear Magento file based cache
-     *
-     * @todo think about way to clean redis cache.
      */
     protected function clearCache()
     {
-        // @todo migrate for Magento 2
-        return;
-
         $this->log("Clearing cache.");
-        $this->execute('rm -rf var/cache/* var/full_page_cache/* media/css/* media/js/*');
+
+        $this->log("Clearing generated code.");
+
+        $this->execute('rm -rf var/generation/*');
+
+        $this->log("Clearing application cache.");
+
+        $this->execute(
+            "cd bin/; /usr/bin/php ./magento cache:flush"
+        );
     }
 
     /**
-     * Update config.php file content
+     * Generates static view files content
+     */
+    protected function deployStaticContent()
+    {
+        $this->log("Generating static content.");
+
+        $this->execute(
+            "cd bin/; /usr/bin/php ./magento setup:static-content:deploy"
+        );
+    }
+
+    /**
+     * Update env.php file content
+     * 
+     * @todo migrate for Magento 2
      */
     protected function updateConfiguration()
     {
-        // @todo migrate for Magento 2
-        return;
+        $this->log("Updating env.php configuration.");
 
-        $this->log("Updating config.php configuration.");
+        $configFileName = "app/etc/env.php";
 
-        $configFileName = "app/etc/config.php";
+        $config = include $configFileName;
 
-        $config = simplexml_load_file($configFileName);
+        $config['db']['connection']['default']['username'] = $this->dbUser;
+        $config['db']['connection']['default']['host'] = $this->dbHost;
+        $config['db']['connection']['default']['dbname'] = $this->dbName;
 
-        $dbConfig = $config->xpath('/config/global/resources/default_setup/connection')[0];
-        $cacheBackend = $config->xpath('/config/global/cache/backend')[0];
+// @todo finish redis
+//        if ('Cm_Cache_Backend_Redis' == $cacheBackend) {
+//            $cacheConfig = $config->xpath('/config/global/cache/backend_options')[0];
+//            $fpcConfig = $config->xpath('/config/global/full_page_cache/backend_options')[0];
+//            $sessionConfig = $config->xpath('/config/global/redis_session')[0];
+//
+//            $cacheConfig->port = $this->redisCachePort;
+//            $cacheConfig->server = $this->redisCacheHost;
+//
+//            $fpcConfig->port = $this->redisFpcPort;
+//            $fpcConfig->server = $this->redisFpcHost;
+//
+//            $sessionConfig->port = $this->redisSessionPort;
+//            $sessionConfig->host = $this->redisSessionHost;
+//        }
 
-        $dbConfig->username = $this->dbUser;
-        $dbConfig->host = $this->dbHost;
-        $dbConfig->dbname = $this->dbName;
+        $updatedConfig = '<?php'  . "\n" . 'return ' . var_export($config, true) . ';';
 
-        if ('Cm_Cache_Backend_Redis' == $cacheBackend) {
-            $cacheConfig = $config->xpath('/config/global/cache/backend_options')[0];
-            $fpcConfig = $config->xpath('/config/global/full_page_cache/backend_options')[0];
-            $sessionConfig = $config->xpath('/config/global/redis_session')[0];
-
-            $cacheConfig->port = $this->redisCachePort;
-            $cacheConfig->server = $this->redisCacheHost;
-
-            $fpcConfig->port = $this->redisFpcPort;
-            $fpcConfig->server = $this->redisFpcHost;
-
-            $sessionConfig->port = $this->redisSessionPort;
-            $sessionConfig->host = $this->redisSessionHost;
-        }
-
-        $config->saveXML($configFileName);
+        file_put_contents($configFileName, $updatedConfig);
     }
 
     protected function log($message)
@@ -327,6 +336,6 @@ class Platformsh
             //$this->lastOutput, 
             //$this->lastStatus
         );
-        // @todo log output in debug mode
+        // @todo maybe log output in debug mode
     }
 }
