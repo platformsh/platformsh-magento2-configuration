@@ -177,6 +177,8 @@ class Platformsh
 
         $this->execute(
             "cd bin/; /usr/bin/php ./magento setup:install \
+            --session-save=db \
+            --cleanup-database \
             --currency=$this->defaultCurrency \
             --base-url=$urlUnsecure \
             --base-url-secure=$urlSecure \
