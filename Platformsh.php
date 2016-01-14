@@ -80,6 +80,8 @@ class Platformsh
      */
     public function initRoutes()
     {
+        $this->log("Initializing routes.");
+
         $routes = $this->getRoutes();
 
         foreach($routes as $key => $val) {
@@ -107,7 +109,11 @@ class Platformsh
      */
     public function build()
     {
+        $this->log("Start build.");
+
         $this->clearTemp();
+
+        $this->log("Copying read/write directories to temp directory.");
 
         foreach ($this->platformReadWriteDirs as $dir) {
             $this->execute(sprintf('mkdir -p ../init/%s', $dir));
@@ -122,7 +128,10 @@ class Platformsh
      */
     public function deploy()
     {
-        // Copy read-write directories back
+        $this->log("Start deploy.");
+
+        $this->log("Copying read/write directories back.");
+
         foreach ($this->platformReadWriteDirs as $dir) {
             $this->execute(sprintf('/bin/bash -c "shopt -s dotglob; cp -R ../init/%s/* %s/ || true"', $dir, $dir));
             $this->log(sprintf('Copied directory: %s', $dir));
@@ -203,12 +212,12 @@ class Platformsh
      */
     protected function updateMagento()
     {
-        $this->log("File env.php exists.");
+        $this->log("File env.php exists. Updating configuration.");
 
         $this->updateConfiguration();
 
         $this->updateDatabaseConfiguration();
-        
+
         $this->updateUrls();
 
         $this->clearCache();
@@ -231,6 +240,8 @@ class Platformsh
      */
     protected function updateUrls()
     {
+        $this->log("Updating secure and unsecure URLs.");
+
         foreach ($this->urls as $urlType => $urls) {
             foreach ($urls as $route => $url) {
                 $prefix = 'unsecure' === $urlType ? self::PREFIX_UNSECURE : self::PREFIX_SECURE;
@@ -250,6 +261,8 @@ class Platformsh
      */
     protected function clearTemp()
     {
+        $this->log("Clearing temporary directory.");
+
         $this->execute('rm -rf ../init/*');
     }
 
@@ -288,7 +301,7 @@ class Platformsh
      */
     protected function updateConfiguration()
     {
-        $this->log("Updating env.php configuration.");
+        $this->log("Updating env.php database configuration.");
 
         $configFileName = "app/etc/env.php";
 
@@ -303,7 +316,7 @@ class Platformsh
             isset($config['cache']['frontend']['default']['backend_options']) &&
             'Cm_Cache_Backend_Redis' == $config['cache']['frontend']['default']['backend']
         ) {
-            $this->log("Updating Redis cache configuration.");
+            $this->log("Updating env.php Redis cache configuration.");
 
             $config['cache']['frontend']['default']['backend_options']['server'] = $this->redisCacheHost;
             $config['cache']['frontend']['default']['backend_options']['port'] = $this->redisCachePort;
@@ -314,7 +327,7 @@ class Platformsh
             isset($config['cache']['frontend']['page_cache']['backend_options']) &&
             'Cm_Cache_Backend_Redis' == $config['cache']['frontend']['page_cache']['backend']
         ) {
-            $this->log("Updating Redis page cache configuration.");
+            $this->log("Updating env.php Redis page cache configuration.");
 
             $config['cache']['frontend']['page_cache']['backend_options']['server'] = $this->redisFpcHost;
             $config['cache']['frontend']['page_cache']['backend_options']['port'] = $this->redisFpcPort;
@@ -337,7 +350,7 @@ class Platformsh
         }
         exec(
             $command//,
-            //$this->lastOutput, 
+            //$this->lastOutput,
             //$this->lastStatus
         );
         // @todo maybe log output in debug mode
