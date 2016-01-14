@@ -2,8 +2,6 @@
 
 // enable, adjust and copy this code for each store you run
 
-// @todo migrate this for Magento 2
-
 // Store #0, default one
 //if (isHttpHost("example.com")) {
 //    $_SERVER["MAGE_RUN_CODE"] = "default";
