@@ -7,11 +7,8 @@ mysql:
     type: mysql:10.0
     disk: 2048
 
-rediscache:
-    type: redis
-
-redisfpc:
-    type: redis
+redis:
+    type: redis:3.0
 
 solr:
     type: solr
