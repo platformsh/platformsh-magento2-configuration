@@ -25,17 +25,9 @@ class Platformsh
     protected $adminEmail;
     protected $adminPassword;
 
-    protected $redisCacheHost;
-    protected $redisCacheScheme;
-    protected $redisCachePort;
-
-    protected $redisFpcHost;
-    protected $redisFpcScheme;
-    protected $redisFpcPort;
-
-    protected $redisSessionHost;
-    protected $redisSessionScheme;
-    protected $redisSessionPort;
+    protected $redisHost;
+    protected $redisScheme;
+    protected $redisPort;
 
     protected $lastOutput = array();
     protected $lastStatus = null;
@@ -62,17 +54,9 @@ class Platformsh
         $this->adminEmail = isset($var["ADMIN_EMAIL"]) ? $var["ADMIN_EMAIL"] : "john@example.com";
         $this->adminPassword = isset($var["ADMIN_PASSWORD"]) ? $var["ADMIN_PASSWORD"] : "admin12";
 
-        $this->redisCacheHost = $relationships['rediscache'][0]['host'];
-        $this->redisCacheScheme = $relationships['rediscache'][0]['scheme'];
-        $this->redisCachePort = $relationships['rediscache'][0]['port'];
-
-        $this->redisFpcHost = $relationships['redisfpc'][0]['host'];
-        $this->redisFpcScheme = $relationships['redisfpc'][0]['scheme'];
-        $this->redisFpcPort = $relationships['redisfpc'][0]['port'];
-
-        $this->redisSessionHost = $relationships['redissession'][0]['host'];
-        $this->redisSessionScheme = $relationships['redissession'][0]['scheme'];
-        $this->redisSessionPort = $relationships['redissession'][0]['port'];
+        $this->redisHost = $relationships['redis'][0]['host'];
+        $this->redisScheme = $relationships['redis'][0]['scheme'];
+        $this->redisPort = $relationships['redis'][0]['port'];
     }
 
     /**
@@ -318,8 +302,8 @@ class Platformsh
         ) {
             $this->log("Updating env.php Redis cache configuration.");
 
-            $config['cache']['frontend']['default']['backend_options']['server'] = $this->redisCacheHost;
-            $config['cache']['frontend']['default']['backend_options']['port'] = $this->redisCachePort;
+            $config['cache']['frontend']['default']['backend_options']['server'] = $this->redisHost;
+            $config['cache']['frontend']['default']['backend_options']['port'] = $this->redisPort;
         }
 
         if (
@@ -329,8 +313,8 @@ class Platformsh
         ) {
             $this->log("Updating env.php Redis page cache configuration.");
 
-            $config['cache']['frontend']['page_cache']['backend_options']['server'] = $this->redisFpcHost;
-            $config['cache']['frontend']['page_cache']['backend_options']['port'] = $this->redisFpcPort;
+            $config['cache']['frontend']['page_cache']['backend_options']['server'] = $this->redisHost;
+            $config['cache']['frontend']['page_cache']['backend_options']['port'] = $this->redisPort;
         }
 
         $updatedConfig = '<?php'  . "\n" . 'return ' . var_export($config, true) . ';';

@@ -24,8 +24,7 @@ runtime:
 relationships:
     database: "mysql:mysql"
     solr: "solr:solr"
-    rediscache: "rediscache:redis"
-    redisfpc: "redisfpc:redis"
+    redis: "redis:redis"
 
 # The configuration of app when it is exposed to the web.
 web:
