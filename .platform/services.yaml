@@ -11,5 +11,5 @@ redis:
     type: redis:3.0
 
 solr:
-    type: solr
+    type: solr:4.10
     disk: 1024
