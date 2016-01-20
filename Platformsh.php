@@ -38,38 +38,6 @@ class Platformsh
     protected $lastStatus = null;
 
     /**
-     * Prepare data needed to install Magento
-     */
-    public function init()
-    {
-        $this->log("Preparing environment specific data.");
-
-        $this->initRoutes();
-
-        $relationships = $this->getRelationships();
-        $var = $this->getVariables();
-
-        $this->dbHost = $relationships["database"][0]["host"];
-        $this->dbName = $relationships["database"][0]["path"];
-        $this->dbUser = $relationships["database"][0]["username"];
-
-        $this->adminUsername = isset($var["ADMIN_USERNAME"]) ? $var["ADMIN_USERNAME"] : "admin";
-        $this->adminFirstname = isset($var["ADMIN_FIRSTNAME"]) ? $var["ADMIN_FIRSTNAME"] : "John";
-        $this->adminLastname = isset($var["ADMIN_LASTNAME"]) ? $var["ADMIN_LASTNAME"] : "Doe";
-        $this->adminEmail = isset($var["ADMIN_EMAIL"]) ? $var["ADMIN_EMAIL"] : "john@example.com";
-        $this->adminPassword = isset($var["ADMIN_PASSWORD"]) ? $var["ADMIN_PASSWORD"] : "admin12";
-
-        $this->redisHost = $relationships['redis'][0]['host'];
-        $this->redisScheme = $relationships['redis'][0]['scheme'];
-        $this->redisPort = $relationships['redis'][0]['port'];
-
-        $this->solrHost = $relationships["solr"][0]["host"];
-        $this->solrPath = $relationships["solr"][0]["path"];
-        $this->solrPort = $relationships["solr"][0]["port"];
-        $this->solrScheme = $relationships["solr"][0]["scheme"];
-    }
-
-    /**
      * Parse Platform.sh routes to more readable format.
      */
     public function initRoutes()
@@ -96,6 +64,12 @@ class Platformsh
                 continue;
             }
         }
+
+        if (!count($this->urls['secure'])) {
+            $this->urls['secure'] = $this->urls['unsecure'];
+        }
+
+        $this->log(sprintf("Routes: %s", var_export($this->urls, true)));
     }
 
     /**
@@ -124,6 +98,8 @@ class Platformsh
     {
         $this->log("Start deploy.");
 
+        $this->_init();
+
         $this->log("Copying read/write directories back.");
 
         foreach ($this->platformReadWriteDirs as $dir) {
@@ -136,6 +112,38 @@ class Platformsh
         } else {
             $this->updateMagento();
         }
+    }
+
+    /**
+     * Prepare data needed to install Magento
+     */
+    protected function _init()
+    {
+        $this->log("Preparing environment specific data.");
+
+        $this->initRoutes();
+
+        $relationships = $this->getRelationships();
+        $var = $this->getVariables();
+
+        $this->dbHost = $relationships["database"][0]["host"];
+        $this->dbName = $relationships["database"][0]["path"];
+        $this->dbUser = $relationships["database"][0]["username"];
+
+        $this->adminUsername = isset($var["ADMIN_USERNAME"]) ? $var["ADMIN_USERNAME"] : "admin";
+        $this->adminFirstname = isset($var["ADMIN_FIRSTNAME"]) ? $var["ADMIN_FIRSTNAME"] : "John";
+        $this->adminLastname = isset($var["ADMIN_LASTNAME"]) ? $var["ADMIN_LASTNAME"] : "Doe";
+        $this->adminEmail = isset($var["ADMIN_EMAIL"]) ? $var["ADMIN_EMAIL"] : "john@example.com";
+        $this->adminPassword = isset($var["ADMIN_PASSWORD"]) ? $var["ADMIN_PASSWORD"] : "admin12";
+
+        $this->redisHost = $relationships['redis'][0]['host'];
+        $this->redisScheme = $relationships['redis'][0]['scheme'];
+        $this->redisPort = $relationships['redis'][0]['port'];
+
+        $this->solrHost = $relationships["solr"][0]["host"];
+        $this->solrPath = $relationships["solr"][0]["path"];
+        $this->solrPort = $relationships["solr"][0]["port"];
+        $this->solrScheme = $relationships["solr"][0]["scheme"];
     }
 
     /**
@@ -349,19 +357,24 @@ class Platformsh
 
     protected function log($message)
     {
-        echo $message . PHP_EOL;
+        echo sprintf('[%s] %s', date("Y-m-d H:i:s"), $message) . PHP_EOL;
     }
 
     protected function execute($command)
     {
         if ($this->debugMode) {
-            $this->log($command);
+            $this->log('Command:'.$command);
         }
+
         exec(
-            $command//,
-            //$this->lastOutput,
-            //$this->lastStatus
+            $command,
+            $this->lastOutput,
+            $this->lastStatus
         );
-        // @todo maybe log output in debug mode
+
+        if ($this->debugMode) {
+            $this->log('Status:'.var_export($this->lastStatus, true));
+            $this->log('Output:'.var_export($this->lastOutput, true));
+        }
     }
 }
