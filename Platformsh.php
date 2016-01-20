@@ -18,6 +18,7 @@ class Platformsh
     protected $dbHost;
     protected $dbName;
     protected $dbUser;
+    protected $dbPassword;
 
     protected $adminUsername;
     protected $adminFirstname;
@@ -129,6 +130,7 @@ class Platformsh
         $this->dbHost = $relationships["database"][0]["host"];
         $this->dbName = $relationships["database"][0]["path"];
         $this->dbUser = $relationships["database"][0]["username"];
+        $this->dbPassword = $relationships["database"][0]["password"];
 
         $this->adminUsername = isset($var["ADMIN_USERNAME"]) ? $var["ADMIN_USERNAME"] : "admin";
         $this->adminFirstname = isset($var["ADMIN_FIRSTNAME"]) ? $var["ADMIN_FIRSTNAME"] : "John";
@@ -186,7 +188,7 @@ class Platformsh
         $urlUnsecure = $this->urls['unsecure'][''];
         $urlSecure = $this->urls['secure'][''];
 
-        $this->execute(
+        $command =
             "cd bin/; /usr/bin/php ./magento setup:install \
             --session-save=db \
             --cleanup-database \
@@ -203,8 +205,14 @@ class Platformsh
             --admin-firstname=$this->adminFirstname \
             --admin-lastname=$this->adminLastname \
             --admin-email=$this->adminEmail \
-            --admin-password=$this->adminPassword"
-        );
+            --admin-password=$this->adminPassword";
+
+        if (strlen($this->dbPassword)) {
+            $command .= " \
+            --db-password=$this->dbPassword";
+        }
+
+        $this->execute($command);
 
         $this->deployStaticContent();
     }
