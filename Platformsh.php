@@ -285,8 +285,6 @@ class Platformsh
 
     /**
      * Clear Magento file based cache
-     *
-     * @todo think about way to clean redis cache.
      */
     protected function clearCache()
     {
