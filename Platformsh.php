@@ -335,6 +335,7 @@ class Platformsh
         $config['db']['connection']['default']['username'] = $this->dbUser;
         $config['db']['connection']['default']['host'] = $this->dbHost;
         $config['db']['connection']['default']['dbname'] = $this->dbName;
+        $config['db']['connection']['default']['password'] = $this->dbPassword;
 
         if (
             isset($config['cache']['frontend']['default']['backend']) &&
