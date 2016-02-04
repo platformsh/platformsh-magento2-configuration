@@ -232,6 +232,8 @@ class Platformsh
 
         $this->updateUrls();
 
+        $this->setupUpgrade();
+
         $this->clearCache();
 
         $this->deployStaticContent();
@@ -244,7 +246,11 @@ class Platformsh
     {
         $this->log("Updating database configuration.");
 
-        $this->execute("mysql -u user -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername' where user_id = '1';\" $this->dbName");
+        if (strlen($this->dbPassword)) {
+            $password = sprintf('-p%s', $this->dbPassword);
+        }
+
+        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername' where user_id = '1';\" $password $this->dbName");
     }
 
     /**
@@ -254,10 +260,14 @@ class Platformsh
     {
         $this->log("Updating SOLR configuration.");
 
-        $this->execute("mysql -u user -h $this->dbHost -e \"update core_config_data set value = '$this->solrHost' where path = 'catalog/search/solr_server_hostname' and scope_id = '0';\" $this->dbName");
-        $this->execute("mysql -u user -h $this->dbHost -e \"update core_config_data set value = '$this->solrPort' where path = 'catalog/search/solr_server_port' and scope_id = '0';\" $this->dbName");
-        $this->execute("mysql -u user -h $this->dbHost -e \"update core_config_data set value = '$this->solrScheme' where path = 'catalog/search/solr_server_username' and scope_id = '0';\" $this->dbName");
-        $this->execute("mysql -u user -h $this->dbHost -e \"update core_config_data set value = '$this->solrPath' where path = 'catalog/search/solr_server_path' and scope_id = '0';\" $this->dbName");
+        if (strlen($this->dbPassword)) {
+            $password = sprintf('-p%s', $this->dbPassword);
+        }
+
+        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrHost' where path = 'catalog/search/solr_server_hostname' and scope_id = '0';\" $password $this->dbName");
+        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrPort' where path = 'catalog/search/solr_server_port' and scope_id = '0';\" $password $this->dbName");
+        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrScheme' where path = 'catalog/search/solr_server_username' and scope_id = '0';\" $password $this->dbName");
+        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrPath' where path = 'catalog/search/solr_server_path' and scope_id = '0';\" $password $this->dbName");
     }
 
     /**
@@ -267,16 +277,20 @@ class Platformsh
     {
         $this->log("Updating secure and unsecure URLs.");
 
+        if (strlen($this->dbPassword)) {
+            $password = sprintf('-p%s', $this->dbPassword);
+        }
+
         foreach ($this->urls as $urlType => $urls) {
             foreach ($urls as $route => $url) {
                 $prefix = 'unsecure' === $urlType ? self::PREFIX_UNSECURE : self::PREFIX_SECURE;
                 if (!strlen($route)) {
-                    $this->execute("mysql -u user -h $this->dbHost -e \"update core_config_data set value = '$url' where path = 'web/$urlType/base_url' and scope_id = '0';\" $this->dbName");
+                    $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$url' where path = 'web/$urlType/base_url' and scope_id = '0';\" $password $this->dbName");
                     continue;
                 }
                 $likeKey = $prefix . $route . '%';
                 $likeKeyParsed = $prefix . str_replace('.', '---', $route) . '%';
-                $this->execute("mysql -u user -h $this->dbHost -e \"update core_config_data set value = '$url' where path = 'web/$urlType/base_url' and (value like '$likeKey' or value like '$likeKeyParsed');\" $this->dbName");
+                $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$url' where path = 'web/$urlType/base_url' and (value like '$likeKey' or value like '$likeKeyParsed');\" $password $this->dbName");
             }
         }
     }
@@ -289,6 +303,18 @@ class Platformsh
         $this->log("Clearing temporary directory.");
 
         $this->execute('rm -rf ../init/*');
+    }
+
+    /**
+     * Run Magento setup upgrade
+     */
+    protected function setupUpgrade()
+    {
+        $this->log("Running setup upgrade.");
+
+        $this->execute(
+            "cd bin/; /usr/bin/php ./magento setup:upgrade"
+        );
     }
 
     /**
@@ -335,7 +361,6 @@ class Platformsh
         $config['db']['connection']['default']['username'] = $this->dbUser;
         $config['db']['connection']['default']['host'] = $this->dbHost;
         $config['db']['connection']['default']['dbname'] = $this->dbName;
-        $config['db']['connection']['default']['password'] = $this->dbPassword;
 
         if (
             isset($config['cache']['frontend']['default']['backend']) &&
@@ -374,6 +399,9 @@ class Platformsh
         if ($this->debugMode) {
             $this->log('Command:'.$command);
         }
+
+        $this->lastOutput = array();
+        $this->lastStatus = null;
 
         exec(
             $command,
