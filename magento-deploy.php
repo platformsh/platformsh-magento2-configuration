@@ -2,5 +2,5 @@
 
 include 'Platformsh.php';
 
-$platformSh = new Platformsh();
+$platformSh = new \Platformsh\Magento\Platformsh();
 $platformSh->deploy();
