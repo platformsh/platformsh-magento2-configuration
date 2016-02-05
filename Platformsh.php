@@ -1,5 +1,7 @@
 <?php
 
+namespace Platformsh\Magento;
+
 class Platformsh
 {
     const MAGIC_ROUTE = '{default}';
