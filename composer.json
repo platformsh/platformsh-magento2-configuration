@@ -1,0 +1,16 @@
+{
+  "name": "platformsh/magento2-configuration",
+  "description": "Provides configuration to deploy a Magento 2 project on Platform.sh",
+  "license": "BSD",
+  "authors": [
+    {
+      "name": "Augustin Delaporte",
+    },
+    {
+      "name": "wojtekn"
+    }
+  ],
+  "require": {
+    "php": ">=5.6"
+  }
+}
