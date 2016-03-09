@@ -344,6 +344,10 @@ class Platformsh
      */
     protected function deployStaticContent()
     {
+        $this->log("Removing existing static content.");
+        $this->execute('rm -rf var/view_preprocessed/*');
+        $this->execute('rm -rf pub/static/*');
+
         $this->log("Generating static content.");
 
         $this->execute(
