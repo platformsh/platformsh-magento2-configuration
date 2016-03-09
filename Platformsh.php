@@ -27,6 +27,7 @@ class Platformsh
     protected $adminLastname;
     protected $adminEmail;
     protected $adminPassword;
+    protected $adminUrl;
 
     protected $redisHost;
     protected $redisScheme;
@@ -139,6 +140,7 @@ class Platformsh
         $this->adminLastname = isset($var["ADMIN_LASTNAME"]) ? $var["ADMIN_LASTNAME"] : "Doe";
         $this->adminEmail = isset($var["ADMIN_EMAIL"]) ? $var["ADMIN_EMAIL"] : "john@example.com";
         $this->adminPassword = isset($var["ADMIN_PASSWORD"]) ? $var["ADMIN_PASSWORD"] : "admin12";
+        $this->adminUrl = isset($var["ADMIN_URL"]) ? $var["ADMIN_URL"] : "admin";
 
         $this->redisHost = $relationships['redis'][0]['host'];
         $this->redisScheme = $relationships['redis'][0]['scheme'];
@@ -202,7 +204,7 @@ class Platformsh
             --db-host=$this->dbHost \
             --db-name=$this->dbName \
             --db-user=$this->dbUser \
-            --backend-frontname=admin \
+            --backend-frontname=$this->adminUrl \
             --admin-user=$this->adminUsername \
             --admin-firstname=$this->adminFirstname \
             --admin-lastname=$this->adminLastname \
@@ -385,6 +387,7 @@ class Platformsh
             $config['cache']['frontend']['page_cache']['backend_options']['server'] = $this->redisHost;
             $config['cache']['frontend']['page_cache']['backend_options']['port'] = $this->redisPort;
         }
+        $config['backend']['frontName'] = $this->adminUrl;
 
         $updatedConfig = '<?php'  . "\n" . 'return ' . var_export($config, true) . ';';
 
