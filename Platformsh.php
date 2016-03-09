@@ -27,6 +27,7 @@ class Platformsh
     protected $adminLastname;
     protected $adminEmail;
     protected $adminPassword;
+    protected $adminUrl;
 
     protected $redisHost;
     protected $redisScheme;
@@ -139,6 +140,7 @@ class Platformsh
         $this->adminLastname = isset($var["ADMIN_LASTNAME"]) ? $var["ADMIN_LASTNAME"] : "Doe";
         $this->adminEmail = isset($var["ADMIN_EMAIL"]) ? $var["ADMIN_EMAIL"] : "john@example.com";
         $this->adminPassword = isset($var["ADMIN_PASSWORD"]) ? $var["ADMIN_PASSWORD"] : "admin12";
+        $this->adminUrl = isset($var["ADMIN_URL"]) ? $var["ADMIN_URL"] : "admin";
 
         $this->redisHost = $relationships['redis'][0]['host'];
         $this->redisScheme = $relationships['redis'][0]['scheme'];
@@ -202,7 +204,7 @@ class Platformsh
             --db-host=$this->dbHost \
             --db-name=$this->dbName \
             --db-user=$this->dbUser \
-            --backend-frontname=admin \
+            --backend-frontname=$this->adminUrl \
             --admin-user=$this->adminUsername \
             --admin-firstname=$this->adminFirstname \
             --admin-lastname=$this->adminLastname \
@@ -252,7 +254,7 @@ class Platformsh
             $password = sprintf('-p%s', $this->dbPassword);
         }
 
-        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername' where user_id = '1';\" $password $this->dbName");
+        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername', password='{$this->generatePassword($this->adminPassword)}' where user_id = '1';\" $password $this->dbName");
     }
 
     /**
@@ -342,6 +344,10 @@ class Platformsh
      */
     protected function deployStaticContent()
     {
+        $this->log("Removing existing static content.");
+        $this->execute('rm -rf var/view_preprocessed/*');
+        $this->execute('rm -rf pub/static/*');
+
         $this->log("Generating static content.");
 
         $this->execute(
@@ -385,6 +391,7 @@ class Platformsh
             $config['cache']['frontend']['page_cache']['backend_options']['server'] = $this->redisHost;
             $config['cache']['frontend']['page_cache']['backend_options']['port'] = $this->redisPort;
         }
+        $config['backend']['frontName'] = $this->adminUrl;
 
         $updatedConfig = '<?php'  . "\n" . 'return ' . var_export($config, true) . ';';
 
@@ -415,5 +422,39 @@ class Platformsh
             $this->log('Status:'.var_export($this->lastStatus, true));
             $this->log('Output:'.var_export($this->lastOutput, true));
         }
+    }
+    
+
+    /**
+     * Generates admin password using default Magento settings
+     */
+    protected function generatePassword($password)
+    {
+        $saltLenght = 32;
+        $charsLowers = 'abcdefghijklmnopqrstuvwxyz';
+        $charsUppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $charsDigits = '0123456789';
+        $randomStr = '';
+        $chars = $charsLowers . $charsUppers . $charsDigits;
+
+        // use openssl lib 
+        for ($i = 0, $lc = strlen($chars) - 1; $i < $saltLenght; $i++) {
+            $bytes = openssl_random_pseudo_bytes(PHP_INT_SIZE);
+            $hex = bin2hex($bytes); // hex() doubles the length of the string
+            $rand = abs(hexdec($hex) % $lc); // random integer from 0 to $lc
+            $randomStr .= $chars[$rand]; // random character in $chars
+        }
+        $salt = $randomStr;
+        $version = 1;
+        $hash = hash('sha256', $salt . $password);
+
+        return implode(
+            ':',
+            [
+                $hash,
+                $salt,
+                $version
+            ]
+        );
     }
 }
