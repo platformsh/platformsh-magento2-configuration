@@ -9,6 +9,8 @@ class Platformsh
     const PREFIX_SECURE = 'https://';
     const PREFIX_UNSECURE = 'http://';
 
+    const GIT_MASTER_BRANCH = 'master';
+
     protected $debugMode = false;
 
     protected $platformReadWriteDirs = ['var', 'app/etc', 'pub'];
@@ -40,6 +42,8 @@ class Platformsh
 
     protected $lastOutput = array();
     protected $lastStatus = null;
+
+    protected $isProductionMode = null;
 
     /**
      * Parse Platform.sh routes to more readable format.
@@ -242,6 +246,8 @@ class Platformsh
         $this->clearCache();
 
         $this->deployStaticContent();
+
+        $this->setMagentoMode();
     }
 
     /**
@@ -465,5 +471,35 @@ class Platformsh
         $this->execute(
             "cd bin/; /usr/bin/php ./magento setup:di:compile-multi-tenant"
         );
+    }
+
+    /**
+     * If current deploy is about master branch
+     * 
+     * @return boolean
+     */
+    protected function isProductionMode()
+    {
+        if (is_null($this->isProductionMode)) {
+            if (isset($_ENV["PLATFORM_ENVIRONMENT"]) && $_ENV["PLATFORM_ENVIRONMENT"] == self::GIT_MASTER_BRANCH) {
+                $this->isProductionMode = true;
+            } else {
+                $this->isProductionMode = false;
+            }
+        }
+        return $this->isProductionMode;
+    }
+
+    /**
+     * If current git branch is not master set Magento into developer mode
+     */
+    protected function setMagentoMode()
+    {
+        if (!$this->isProductionMode()) {
+            $this->log("Changing Magento mode to 'developer'");
+            $this->execute('rm -rf var/di/*');
+            $this->execute('rm -rf var/generation/*');
+            $this->execute("cd bin/; /usr/bin/php ./magento deploy:mode:set developer");
+        }
     }
 }
