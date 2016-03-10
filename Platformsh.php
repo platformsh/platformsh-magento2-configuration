@@ -116,6 +116,7 @@ class Platformsh
         } else {
             $this->updateMagento();
         }
+        $this->doCompilation();
     }
 
     /**
@@ -455,6 +456,20 @@ class Platformsh
                 $salt,
                 $version
             ]
+        );
+    }
+
+    /**
+     * Execute compilation command.
+     * Doing multi-tenant compilation always, because there is known issue with single-tenant one
+     */
+    protected function doCompilation()
+    {
+        $this->log("Removing old compilation files");
+        $this->execute('rm -rf var/di/*');
+        $this->log("Doing code compilation");
+        $this->execute(
+            "cd bin/; /usr/bin/php ./magento setup:di:compile-multi-tenant"
         );
     }
 }
