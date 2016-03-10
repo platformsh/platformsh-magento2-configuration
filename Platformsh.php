@@ -251,9 +251,7 @@ class Platformsh
     {
         $this->log("Updating database configuration.");
 
-        if (strlen($this->dbPassword)) {
-            $password = sprintf('-p%s', $this->dbPassword);
-        }
+        $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
 
         $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername', password='{$this->generatePassword($this->adminPassword)}' where user_id = '1';\" $password $this->dbName");
     }
@@ -265,9 +263,7 @@ class Platformsh
     {
         $this->log("Updating SOLR configuration.");
 
-        if (strlen($this->dbPassword)) {
-            $password = sprintf('-p%s', $this->dbPassword);
-        }
+        $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
 
         $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrHost' where path = 'catalog/search/solr_server_hostname' and scope_id = '0';\" $password $this->dbName");
         $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrPort' where path = 'catalog/search/solr_server_port' and scope_id = '0';\" $password $this->dbName");
@@ -282,9 +278,7 @@ class Platformsh
     {
         $this->log("Updating secure and unsecure URLs.");
 
-        if (strlen($this->dbPassword)) {
-            $password = sprintf('-p%s', $this->dbPassword);
-        }
+        $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
 
         foreach ($this->urls as $urlType => $urls) {
             foreach ($urls as $route => $url) {
