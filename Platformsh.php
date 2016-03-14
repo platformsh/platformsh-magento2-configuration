@@ -9,11 +9,9 @@ class Platformsh
     const PREFIX_SECURE = 'https://';
     const PREFIX_UNSECURE = 'http://';
 
-    const GIT_MASTER_BRANCH = 'master';
-
     protected $debugMode = false;
 
-    protected $platformReadWriteDirs = ['var', 'app/etc', 'pub/media', 'pub/static'];
+    protected $platformReadWriteDirs = ['var', 'app/etc', 'pub'];
 
     protected $urls = ['unsecure' => [], 'secure' => []];
 
@@ -42,8 +40,6 @@ class Platformsh
 
     protected $lastOutput = array();
     protected $lastStatus = null;
-
-    protected $isProductionMode = null;
 
     /**
      * Parse Platform.sh routes to more readable format.
@@ -120,7 +116,6 @@ class Platformsh
         } else {
             $this->updateMagento();
         }
-        $this->doCompilation();
     }
 
     /**
@@ -246,8 +241,6 @@ class Platformsh
         $this->clearCache();
 
         $this->deployStaticContent();
-
-        $this->setMagentoMode();
     }
 
     /**
@@ -257,7 +250,9 @@ class Platformsh
     {
         $this->log("Updating database configuration.");
 
-        $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
+        if (strlen($this->dbPassword)) {
+            $password = sprintf('-p%s', $this->dbPassword);
+        }
 
         $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername', password='{$this->generatePassword($this->adminPassword)}' where user_id = '1';\" $password $this->dbName");
     }
@@ -269,7 +264,9 @@ class Platformsh
     {
         $this->log("Updating SOLR configuration.");
 
-        $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
+        if (strlen($this->dbPassword)) {
+            $password = sprintf('-p%s', $this->dbPassword);
+        }
 
         $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrHost' where path = 'catalog/search/solr_server_hostname' and scope_id = '0';\" $password $this->dbName");
         $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrPort' where path = 'catalog/search/solr_server_port' and scope_id = '0';\" $password $this->dbName");
@@ -284,7 +281,9 @@ class Platformsh
     {
         $this->log("Updating secure and unsecure URLs.");
 
-        $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
+        if (strlen($this->dbPassword)) {
+            $password = sprintf('-p%s', $this->dbPassword);
+        }
 
         foreach ($this->urls as $urlType => $urls) {
             foreach ($urls as $route => $url) {
@@ -457,49 +456,5 @@ class Platformsh
                 $version
             ]
         );
-    }
-
-    /**
-     * Execute compilation command.
-     * Doing multi-tenant compilation always, because there is known issue with single-tenant one
-     */
-    protected function doCompilation()
-    {
-        $this->log("Removing old compilation files");
-        $this->execute('rm -rf var/di/*');
-        $this->log("Doing code compilation");
-        $this->execute(
-            "cd bin/; /usr/bin/php ./magento setup:di:compile-multi-tenant"
-        );
-    }
-
-    /**
-     * If current deploy is about master branch
-     * 
-     * @return boolean
-     */
-    protected function isProductionMode()
-    {
-        if (is_null($this->isProductionMode)) {
-            if (isset($_ENV["PLATFORM_ENVIRONMENT"]) && $_ENV["PLATFORM_ENVIRONMENT"] == self::GIT_MASTER_BRANCH) {
-                $this->isProductionMode = true;
-            } else {
-                $this->isProductionMode = false;
-            }
-        }
-        return $this->isProductionMode;
-    }
-
-    /**
-     * If current git branch is not master set Magento into developer mode
-     */
-    protected function setMagentoMode()
-    {
-        if (!$this->isProductionMode()) {
-            $this->log("Changing Magento mode to 'developer'");
-            $this->execute('rm -rf var/di/*');
-            $this->execute('rm -rf var/generation/*');
-            $this->execute("cd bin/; /usr/bin/php ./magento deploy:mode:set developer");
-        }
     }
 }
