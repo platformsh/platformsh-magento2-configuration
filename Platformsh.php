@@ -9,6 +9,8 @@ class Platformsh
     const PREFIX_SECURE = 'https://';
     const PREFIX_UNSECURE = 'http://';
 
+    const GIT_MASTER_BRANCH = 'master';
+
     protected $debugMode = false;
 
     protected $platformReadWriteDirs = ['var', 'app/etc', 'pub'];
@@ -40,6 +42,8 @@ class Platformsh
 
     protected $lastOutput = array();
     protected $lastStatus = null;
+
+    protected $isProductionMode = null;
 
     /**
      * Parse Platform.sh routes to more readable format.
@@ -116,6 +120,7 @@ class Platformsh
         } else {
             $this->updateMagento();
         }
+        $this->disableGoogleAnalytics();
     }
 
     /**
@@ -249,12 +254,8 @@ class Platformsh
     protected function updateDatabaseConfiguration()
     {
         $this->log("Updating database configuration.");
-
-        if (strlen($this->dbPassword)) {
-            $password = sprintf('-p%s', $this->dbPassword);
-        }
-
-        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername', password='{$this->generatePassword($this->adminPassword)}' where user_id = '1';\" $password $this->dbName");
+        
+        $this->executeDbQuery("update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername', password='{$this->generatePassword($this->adminPassword)}' where user_id = '1';");
     }
 
     /**
@@ -264,14 +265,10 @@ class Platformsh
     {
         $this->log("Updating SOLR configuration.");
 
-        if (strlen($this->dbPassword)) {
-            $password = sprintf('-p%s', $this->dbPassword);
-        }
-
-        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrHost' where path = 'catalog/search/solr_server_hostname' and scope_id = '0';\" $password $this->dbName");
-        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrPort' where path = 'catalog/search/solr_server_port' and scope_id = '0';\" $password $this->dbName");
-        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrScheme' where path = 'catalog/search/solr_server_username' and scope_id = '0';\" $password $this->dbName");
-        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$this->solrPath' where path = 'catalog/search/solr_server_path' and scope_id = '0';\" $password $this->dbName");
+        $this->executeDbQuery("update core_config_data set value = '$this->solrHost' where path = 'catalog/search/solr_server_hostname' and scope_id = '0';");
+        $this->executeDbQuery("update core_config_data set value = '$this->solrPort' where path = 'catalog/search/solr_server_port' and scope_id = '0';");
+        $this->executeDbQuery("update core_config_data set value = '$this->solrScheme' where path = 'catalog/search/solr_server_username' and scope_id = '0';");
+        $this->executeDbQuery("update core_config_data set value = '$this->solrPath' where path = 'catalog/search/solr_server_path' and scope_id = '0';");
     }
 
     /**
@@ -281,20 +278,16 @@ class Platformsh
     {
         $this->log("Updating secure and unsecure URLs.");
 
-        if (strlen($this->dbPassword)) {
-            $password = sprintf('-p%s', $this->dbPassword);
-        }
-
         foreach ($this->urls as $urlType => $urls) {
             foreach ($urls as $route => $url) {
                 $prefix = 'unsecure' === $urlType ? self::PREFIX_UNSECURE : self::PREFIX_SECURE;
                 if (!strlen($route)) {
-                    $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$url' where path = 'web/$urlType/base_url' and scope_id = '0';\" $password $this->dbName");
+                    $this->executeDbQuery("update core_config_data set value = '$url' where path = 'web/$urlType/base_url' and scope_id = '0';");
                     continue;
                 }
                 $likeKey = $prefix . $route . '%';
                 $likeKeyParsed = $prefix . str_replace('.', '---', $route) . '%';
-                $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"update core_config_data set value = '$url' where path = 'web/$urlType/base_url' and (value like '$likeKey' or value like '$likeKeyParsed');\" $password $this->dbName");
+                $this->executeDbQuery("update core_config_data set value = '$url' where path = 'web/$urlType/base_url' and (value like '$likeKey' or value like '$likeKeyParsed');");
             }
         }
     }
@@ -456,5 +449,46 @@ class Platformsh
                 $version
             ]
         );
+    }
+
+    /**
+     * If current deploy is about master branch
+     * 
+     * @return boolean
+     */
+    protected function isProductionMode()
+    {
+        if (is_null($this->isProductionMode)) {
+            if (isset($_ENV["PLATFORM_ENVIRONMENT"]) && $_ENV["PLATFORM_ENVIRONMENT"] == self::GIT_MASTER_BRANCH) {
+                $this->isProductionMode = true;
+            } else {
+                $this->isProductionMode = false;
+            }
+        }
+        return $this->isProductionMode;
+    }
+
+    /**
+     * If branch isn't master - disable Google Analytics
+     */
+    protected function disableGoogleAnalytics()
+    {
+        if (!$this->isProductionMode()) {
+            $this->log("Disabling Google Analytics");
+            $this->executeDbQuery("update core_config_data set value = 0 where path = 'google/analytics/active';");
+            $this->execute('rm -rf var/di/*');
+        }
+    }
+
+    /**
+     * Executes database query
+     * 
+     * @param string $query
+     * $query must be completed, finished with semicolon (;)
+     */
+    protected function executeDbQuery($query)
+    {
+        $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
+        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"$query\" $password $this->dbName");
     }
 }
