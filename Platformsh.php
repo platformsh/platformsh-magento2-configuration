@@ -476,7 +476,6 @@ class Platformsh
         if (!$this->isProductionMode()) {
             $this->log("Disabling Google Analytics");
             $this->executeDbQuery("update core_config_data set value = 0 where path = 'google/analytics/active';");
-            $this->execute('rm -rf var/di/*');
         }
     }
 
