@@ -351,22 +351,6 @@ class Platformsh
     }
 
     /**
-     * Generates static view files content
-     */
-    protected function deployStaticContent()
-    {
-        $this->log("Removing existing static content.");
-        $this->execute('rm -rf var/view_preprocessed/*');
-        $this->execute('rm -rf pub/static/*');
-
-        $this->log("Generating static content.");
-
-        $this->execute(
-            "cd bin/; /usr/bin/php ./magento setup:static-content:deploy"
-        );
-    }
-
-    /**
      * Update env.php file content
      */
     protected function updateConfiguration()
