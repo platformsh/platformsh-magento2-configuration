@@ -9,6 +9,11 @@ class Platformsh
     const PREFIX_SECURE = 'https://';
     const PREFIX_UNSECURE = 'http://';
 
+    const GIT_MASTER_BRANCH = 'master';
+
+    const MAGENTO_PRODUCTION_MODE = 'production';
+    const MAGENTO_DEVELOPER_MODE = 'developer';
+
     protected $debugMode = false;
 
     protected $platformReadWriteDirs = ['var', 'app/etc', 'pub'];
@@ -40,6 +45,9 @@ class Platformsh
 
     protected $lastOutput = array();
     protected $lastStatus = null;
+
+    protected $isProductionMode = null;
+    protected $desiredApplicationMode;
 
     /**
      * Parse Platform.sh routes to more readable format.
@@ -116,6 +124,7 @@ class Platformsh
         } else {
             $this->updateMagento();
         }
+        $this->processMagentoMode();
     }
 
     /**
@@ -141,6 +150,12 @@ class Platformsh
         $this->adminEmail = isset($var["ADMIN_EMAIL"]) ? $var["ADMIN_EMAIL"] : "john@example.com";
         $this->adminPassword = isset($var["ADMIN_PASSWORD"]) ? $var["ADMIN_PASSWORD"] : "admin12";
         $this->adminUrl = isset($var["ADMIN_URL"]) ? $var["ADMIN_URL"] : "admin";
+
+        $this->desiredApplicationMode = isset($var["APPLICATION_MODE"]) ? $var["APPLICATION_MODE"] : false;
+        $this->desiredApplicationMode = 
+            in_array($this->desiredApplicationMode, array(self::MAGENTO_DEVELOPER_MODE, self::MAGENTO_PRODUCTION_MODE)) 
+            ? $this->desiredApplicationMode
+            : false;
 
         $this->redisHost = $relationships['redis'][0]['host'];
         $this->redisScheme = $relationships['redis'][0]['scheme'];
@@ -217,8 +232,6 @@ class Platformsh
         }
 
         $this->execute($command);
-
-        $this->deployStaticContent();
     }
 
     /**
@@ -239,8 +252,6 @@ class Platformsh
         $this->setupUpgrade();
 
         $this->clearCache();
-
-        $this->deployStaticContent();
     }
 
     /**
@@ -456,5 +467,69 @@ class Platformsh
                 $version
             ]
         );
+    }
+
+    /**
+     * If current deploy is about master branch
+     * 
+     * @return boolean
+     */
+    protected function isProductionMode()
+    {
+        if (is_null($this->isProductionMode)) {
+            if (isset($_ENV["PLATFORM_ENVIRONMENT"]) && $_ENV["PLATFORM_ENVIRONMENT"] == self::GIT_MASTER_BRANCH) {
+                $this->isProductionMode = true;
+            } else {
+                $this->isProductionMode = false;
+            }
+        }
+        return $this->isProductionMode;
+    }
+
+    /**
+     * Executes database query
+     * 
+     * @param string $query
+     * $query must completed, finished with semicolon (;)
+     */
+    protected function executeDbQuery($query)
+    {
+        $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
+        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"$query\" $password $this->dbName");
+    }
+
+    /**
+     * Based on variable APPLICATION_MODE or git branch set Magento application production or developer mode
+     */
+    protected function processMagentoMode()
+    {
+        if ($this->desiredApplicationMode) {
+            $desiredApplicationMode = $this->desiredApplicationMode;
+        } else if ($this->isProductionMode()) {
+            $desiredApplicationMode = self::MAGENTO_PRODUCTION_MODE;
+        } else {
+            $desiredApplicationMode = self::MAGENTO_DEVELOPER_MODE;
+        }
+
+        $this->log("Set Magento application to '$desiredApplicationMode' mode");
+        $this->log("Removing existing static content.");
+        $this->execute('rm -rf var/view_preprocessed/*');
+        $this->execute('rm -rf pub/static/*');
+        $this->log("Removing existing compilation files.");
+        $this->execute('rm -rf var/di/');
+        $this->log("Changing application mode.");
+        $this->execute("cd bin/; /usr/bin/php ./magento deploy:mode:set $desiredApplicationMode");
+        if ($desiredApplicationMode == self::MAGENTO_DEVELOPER_MODE) {
+            $locales = '';
+            $this->executeDbQuery("select value from core_config_data where path='general/locale/code';");
+            if (is_array($this->lastOutput) && count($this->lastOutput) > 1) {
+                $locales = $this->lastOutput;
+                array_shift($locales);
+                $locales = implode(' ', $locales);
+            }
+            $logMessage = $locales ? "Generating static content for locales $locales." : "Generating static content.";
+            $this->log($logMessage);
+            $this->execute("cd bin/; /usr/bin/php ./magento setup:static-content:deploy $locales");
+        }
     }
 }
