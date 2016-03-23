@@ -91,6 +91,8 @@ class Platformsh
     {
         $this->log("Start build.");
 
+        $this->applyPatches();
+
         $this->clearTemp();
 
         $this->log("Copying read/write directories to temp directory.");
@@ -519,5 +521,14 @@ class Platformsh
             $this->log($logMessage);
             $this->execute("cd bin/; /usr/bin/php ./magento setup:static-content:deploy $locales");
         }
+    }
+
+    /**
+     * Apply any existing patches
+     */
+    protected function applyPatches()
+    {
+        $this->log("Patching Magento.");
+        $this->execute('/usr/bin/php ./vendor/vrann/magento20-patches/patch.php');
     }
 }
