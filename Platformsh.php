@@ -16,7 +16,7 @@ class Platformsh
 
     protected $debugMode = false;
 
-    protected $platformReadWriteDirs = ['var', 'app/etc', 'pub/media', 'pub/static'];
+    protected $platformReadWriteDirs = ['var', 'app/etc', 'pub'];
 
     protected $urls = ['unsecure' => [], 'secure' => []];
 
@@ -90,6 +90,8 @@ class Platformsh
     public function build()
     {
         $this->log("Start build.");
+
+        $this->applyPatches();
 
         $this->clearTemp();
 
@@ -519,5 +521,14 @@ class Platformsh
             $this->log($logMessage);
             $this->execute("cd bin/; /usr/bin/php ./magento setup:static-content:deploy $locales");
         }
+    }
+
+    /**
+     * Apply any existing patches
+     */
+    protected function applyPatches()
+    {
+        $this->log("Patching Magento.");
+        $this->execute('/usr/bin/php ./vendor/vrann/magento20-patches/patch.php');
     }
 }
