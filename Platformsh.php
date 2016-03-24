@@ -46,7 +46,7 @@ class Platformsh
     protected $lastOutput = array();
     protected $lastStatus = null;
 
-    protected $isProductionMode = null;
+    protected $isMasterBranch = null;
     protected $desiredApplicationMode;
 
     /**
@@ -246,7 +246,7 @@ class Platformsh
 
         $this->updateConfiguration();
 
-        $this->updateDatabaseConfiguration();
+        $this->updateAdminCredentials();
 
         $this->updateSolrConfiguration();
 
@@ -260,9 +260,9 @@ class Platformsh
     /**
      * Update admin credentials
      */
-    protected function updateDatabaseConfiguration()
+    protected function updateAdminCredentials()
     {
-        $this->log("Updating database configuration.");
+        $this->log("Updating admin credentials.");
 
         $this->executeDbQuery("update admin_user set firstname = '$this->adminFirstname', lastname = '$this->adminLastname', email = '$this->adminEmail', username = '$this->adminUsername', password='{$this->generatePassword($this->adminPassword)}' where user_id = '1';");
     }
@@ -355,6 +355,12 @@ class Platformsh
         $config['db']['connection']['default']['username'] = $this->dbUser;
         $config['db']['connection']['default']['host'] = $this->dbHost;
         $config['db']['connection']['default']['dbname'] = $this->dbName;
+
+        if (isset($config['db']['connection']['indexer'])) {
+            $config['db']['connection']['indexer']['username'] = $this->dbUser;
+            $config['db']['connection']['indexer']['host'] = $this->dbHost;
+            $config['db']['connection']['indexer']['dbname'] = $this->dbName;
+        }
 
         if (
             isset($config['cache']['frontend']['default']['backend']) &&
@@ -449,16 +455,16 @@ class Platformsh
      *
      * @return boolean
      */
-    protected function isProductionMode()
+    protected function isMasterBranch()
     {
-        if (is_null($this->isProductionMode)) {
+        if (is_null($this->isMasterBranch)) {
             if (isset($_ENV["PLATFORM_ENVIRONMENT"]) && $_ENV["PLATFORM_ENVIRONMENT"] == self::GIT_MASTER_BRANCH) {
-                $this->isProductionMode = true;
+                $this->isMasterBranch = true;
             } else {
-                $this->isProductionMode = false;
+                $this->isMasterBranch = false;
             }
         }
-        return $this->isProductionMode;
+        return $this->isMasterBranch;
     }
 
     /**
@@ -470,7 +476,7 @@ class Platformsh
      */
     protected function disableGoogleAnalytics()
     {
-        if (!$this->isProductionMode()) {
+        if (!$this->isMasterBranch()) {
             $this->log("Disabling Google Analytics");
             $this->executeDbQuery("update core_config_data set value = 0 where path = 'google/analytics/active';");
         }
@@ -495,7 +501,7 @@ class Platformsh
     {
         if ($this->desiredApplicationMode) {
             $desiredApplicationMode = $this->desiredApplicationMode;
-        } else if ($this->isProductionMode()) {
+        } else if ($this->isMasterBranch()) {
             $desiredApplicationMode = self::MAGENTO_PRODUCTION_MODE;
         } else {
             $desiredApplicationMode = self::MAGENTO_DEVELOPER_MODE;
