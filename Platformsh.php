@@ -355,11 +355,13 @@ class Platformsh
         $config['db']['connection']['default']['username'] = $this->dbUser;
         $config['db']['connection']['default']['host'] = $this->dbHost;
         $config['db']['connection']['default']['dbname'] = $this->dbName;
+        $config['db']['connection']['default']['password'] = $this->dbPassword;
 
         if (isset($config['db']['connection']['indexer'])) {
             $config['db']['connection']['indexer']['username'] = $this->dbUser;
             $config['db']['connection']['indexer']['host'] = $this->dbHost;
             $config['db']['connection']['indexer']['dbname'] = $this->dbName;
+            $config['db']['connection']['default']['password'] = $this->dbPassword;
         }
 
         if (
