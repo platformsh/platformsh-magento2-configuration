@@ -281,7 +281,7 @@ class Platformsh
     }
 
     /**
-     * Update secure and unsecure URLs 
+     * Update secure and unsecure URLs
      */
     protected function updateUrls()
     {
@@ -357,12 +357,10 @@ class Platformsh
         $config['db']['connection']['default']['dbname'] = $this->dbName;
         $config['db']['connection']['default']['password'] = $this->dbPassword;
 
-        if (isset($config['db']['connection']['indexer'])) {
-            $config['db']['connection']['indexer']['username'] = $this->dbUser;
-            $config['db']['connection']['indexer']['host'] = $this->dbHost;
-            $config['db']['connection']['indexer']['dbname'] = $this->dbName;
-            $config['db']['connection']['default']['password'] = $this->dbPassword;
-        }
+        $config['db']['connection']['indexer']['username'] = $this->dbUser;
+        $config['db']['connection']['indexer']['host'] = $this->dbHost;
+        $config['db']['connection']['indexer']['dbname'] = $this->dbName;
+        $config['db']['connection']['indexer']['password'] = $this->dbPassword;
 
         if (
             isset($config['cache']['frontend']['default']['backend']) &&
@@ -497,17 +495,12 @@ class Platformsh
     }
 
     /**
-     * Based on variable APPLICATION_MODE or git branch set Magento application production or developer mode
+     * Based on variable APPLICATION_MODE. Production mode by default
      */
     protected function processMagentoMode()
     {
-        if ($this->desiredApplicationMode) {
-            $desiredApplicationMode = $this->desiredApplicationMode;
-        } else if ($this->isMasterBranch()) {
-            $desiredApplicationMode = self::MAGENTO_PRODUCTION_MODE;
-        } else {
-            $desiredApplicationMode = self::MAGENTO_DEVELOPER_MODE;
-        }
+      
+        $desiredApplicationMode = ($this->desiredApplicationMode) ? $this->desiredApplicationMode : self::MAGENTO_PRODUCTION_MODE;
 
         $this->log("Set Magento application to '$desiredApplicationMode' mode");
         $this->log("Removing existing static content.");
