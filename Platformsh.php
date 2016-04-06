@@ -16,7 +16,7 @@ class Platformsh
 
     protected $debugMode = false;
 
-    protected $platformReadWriteDirs = ['var', 'app/etc', 'pub'];
+    protected $platformReadWriteDirs = ['var/di', 'var/generation', 'app/etc'];
 
     protected $urls = ['unsecure' => [], 'secure' => []];
 
@@ -92,6 +92,8 @@ class Platformsh
 
         $this->clearTemp();
 
+        $this->compile();
+
         $this->log("Copying read/write directories to temp directory.");
 
         foreach ($this->platformReadWriteDirs as $dir) {
@@ -100,6 +102,16 @@ class Platformsh
             $this->execute(sprintf('rm -rf %s', $dir));
             $this->execute(sprintf('mkdir %s', $dir));
         }
+    }
+
+    /**
+     * Compile the generated files.
+     */
+    public function compile()
+    {
+        $this->log("Compiling generated files.");
+
+        $this->execute("php bin/magento setup:di:compile-multi-tenant");
     }
 
     /**
@@ -326,12 +338,6 @@ class Platformsh
      */
     protected function clearCache()
     {
-        $this->log("Clearing cache.");
-
-        $this->log("Clearing generated code.");
-
-        $this->execute('rm -rf var/generation/*');
-
         $this->log("Clearing application cache.");
 
         $this->execute(
@@ -500,17 +506,12 @@ class Platformsh
      */
     protected function processMagentoMode()
     {
-      
+
         $desiredApplicationMode = ($this->desiredApplicationMode) ? $this->desiredApplicationMode : self::MAGENTO_PRODUCTION_MODE;
 
         $this->log("Set Magento application to '$desiredApplicationMode' mode");
-        $this->log("Removing existing static content.");
-        $this->execute('rm -rf var/view_preprocessed/*');
-        $this->execute('rm -rf pub/static/*');
-        $this->log("Removing existing compilation files.");
-        $this->execute('rm -rf var/di/');
         $this->log("Changing application mode.");
-        $this->execute("cd bin/; /usr/bin/php ./magento deploy:mode:set $desiredApplicationMode");
+        $this->execute("cd bin/; /usr/bin/php ./magento deploy:mode:set $desiredApplicationMode --skip-compilation");
         if ($desiredApplicationMode == self::MAGENTO_DEVELOPER_MODE) {
             $locales = '';
             $output = $this->executeDbQuery("select value from core_config_data where path='general/locale/code';");
