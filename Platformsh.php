@@ -43,9 +43,6 @@ class Platformsh
     protected $solrPort;
     protected $solrScheme;
 
-    protected $lastOutput = array();
-    protected $lastStatus = null;
-
     protected $isMasterBranch = null;
     protected $desiredApplicationMode;
 
@@ -402,19 +399,22 @@ class Platformsh
             $this->log('Command:'.$command);
         }
 
-        $this->lastOutput = array();
-        $this->lastStatus = null;
-
         exec(
             $command,
-            $this->lastOutput,
-            $this->lastStatus
+            $output,
+            $status
         );
 
         if ($this->debugMode) {
-            $this->log('Status:'.var_export($this->lastStatus, true));
-            $this->log('Output:'.var_export($this->lastOutput, true));
+            $this->log('Status:'.var_export($status, true));
+            $this->log('Output:'.var_export($output, true));
         }
+
+        if ($status != 0) {
+            throw new \RuntimeException("Command $command returned code $status", $status);
+        }
+
+        return $output;
     }
 
 
@@ -492,7 +492,7 @@ class Platformsh
     protected function executeDbQuery($query)
     {
         $password = strlen($this->dbPassword) ? sprintf('-p%s', $this->dbPassword) : '';
-        $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"$query\" $password $this->dbName");
+        return $this->execute("mysql -u $this->dbUser -h $this->dbHost -e \"$query\" $password $this->dbName");
     }
 
     /**
@@ -513,8 +513,8 @@ class Platformsh
         $this->execute("cd bin/; /usr/bin/php ./magento deploy:mode:set $desiredApplicationMode");
         if ($desiredApplicationMode == self::MAGENTO_DEVELOPER_MODE) {
             $locales = '';
-            $this->executeDbQuery("select value from core_config_data where path='general/locale/code';");
-            if (is_array($this->lastOutput) && count($this->lastOutput) > 1) {
+            $output = $this->executeDbQuery("select value from core_config_data where path='general/locale/code';");
+            if (is_array($output) && count($output) > 1) {
                 $locales = $this->lastOutput;
                 array_shift($locales);
                 $locales = implode(' ', $locales);
