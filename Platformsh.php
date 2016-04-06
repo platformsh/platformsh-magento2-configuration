@@ -320,7 +320,7 @@ class Platformsh
         $this->log("Running setup upgrade.");
 
         $this->execute(
-            "cd bin/; /usr/bin/php ./magento setup:upgrade"
+            "cd bin/; /usr/bin/php ./magento setup:upgrade --keep-generated"
         );
     }
 
