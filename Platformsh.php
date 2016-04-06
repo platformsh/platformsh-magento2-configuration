@@ -514,7 +514,7 @@ class Platformsh
             $locales = '';
             $output = $this->executeDbQuery("select value from core_config_data where path='general/locale/code';");
             if (is_array($output) && count($output) > 1) {
-                $locales = $this->lastOutput;
+                $locales = $output;
                 array_shift($locales);
                 $locales = implode(' ', $locales);
             }
