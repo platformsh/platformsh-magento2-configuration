@@ -217,6 +217,7 @@ class Platformsh
             --currency=$this->defaultCurrency \
             --base-url=$urlUnsecure \
             --base-url-secure=$urlSecure \
+            --use-rewrites=1 \
             --language=en_US \
             --timezone=America/Los_Angeles \
             --db-host=$this->dbHost \
