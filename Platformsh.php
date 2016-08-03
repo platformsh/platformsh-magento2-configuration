@@ -107,6 +107,10 @@ class Platformsh
      */
     public function compile()
     {
+        $this->log("Enable all modules.");
+
+        $this->execute("php bin/magento module:enable --all");
+
         $this->log("Compiling generated files.");
 
         $this->execute("php bin/magento setup:di:compile-multi-tenant");
