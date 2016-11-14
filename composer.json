@@ -1,16 +1,20 @@
 {
   "name": "platformsh/magento2-configuration",
-  "description": "Provides configuration to deploy a Magento 2 project on Platform.sh",
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Augustin Delaporte"
-    },
-    {
-      "name": "wojtek"
-    }
+  "description": "Provides default configuration to build and deploy Magento 2 Enterprise Edition",
+  "version": "101.2.0",
+  "license": [
+      "OSL-3.0",
+      "AFL-3.0"
   ],
   "require": {
     "php": ">=5.6.0"
+  },
+  "autoload": {
+    "files": [
+      "cli_commands.php"
+    ],
+    "psr-4": {
+      "Platformsh\\": ["src/Platformsh"]
+    }
   }
 }
