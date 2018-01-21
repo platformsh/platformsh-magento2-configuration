@@ -113,7 +113,7 @@ class Platformsh
 
         $this->log("Compiling generated files.");
 
-        $this->execute("php bin/magento setup:di:compile-multi-tenant");
+        $this->execute("php bin/magento setup:di:compile");
     }
 
     /**
