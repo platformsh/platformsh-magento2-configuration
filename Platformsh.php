@@ -16,7 +16,7 @@ class Platformsh
 
     protected $debugMode = false;
 
-    protected $platformReadWriteDirs = ['var/di', 'var/generation', 'app/etc'];
+    protected $platformReadWriteDirs = ['generated', 'app/etc'];
 
     protected $urls = ['unsecure' => [], 'secure' => []];
 
@@ -113,7 +113,7 @@ class Platformsh
 
         $this->log("Compiling generated files.");
 
-        $this->execute("php bin/magento setup:di:compile-multi-tenant");
+        $this->execute("php bin/magento setup:di:compile");
     }
 
     /**
@@ -133,7 +133,7 @@ class Platformsh
             $this->log(sprintf('Copied directory: %s', $dir));
         }
 
-        if (!file_exists('app/etc/env.php')) {
+        if (!file_exists('.installed')) {
             $this->installMagento();
         } else {
             $this->updateMagento();
@@ -248,6 +248,9 @@ class Platformsh
         }
 
         $this->execute($command);
+        
+        // Set the flag
+        touch('.installed');
     }
 
     /**
