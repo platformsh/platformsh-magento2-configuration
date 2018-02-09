@@ -133,7 +133,7 @@ class Platformsh
             $this->log(sprintf('Copied directory: %s', $dir));
         }
 
-        if (!file_exists('.installed')) {
+        if (!file_exists('app/etc/.installed')) {
             $this->installMagento();
         } else {
             $this->updateMagento();
@@ -250,7 +250,7 @@ class Platformsh
         $this->execute($command);
         
         // Set the flag
-        touch('.installed');
+        touch('app/etc/.installed');
     }
 
     /**
