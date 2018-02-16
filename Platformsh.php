@@ -518,7 +518,7 @@ class Platformsh
         $this->log("Set Magento application to '$desiredApplicationMode' mode");
         $this->log("Changing application mode.");
         $this->execute("cd bin/; /usr/bin/php ./magento deploy:mode:set $desiredApplicationMode --skip-compilation");
-        if ($desiredApplicationMode == self::MAGENTO_DEVELOPER_MODE) {
+        if ($desiredApplicationMode !== self::MAGENTO_DEVELOPER_MODE) {
             $locales = '';
             $output = $this->executeDbQuery("select value from core_config_data where path='general/locale/code';");
             if (is_array($output) && count($output) > 1) {
