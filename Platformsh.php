@@ -230,6 +230,8 @@ class Platformsh
             --base-url=$urlUnsecure \
             --base-url-secure=$urlSecure \
             --use-rewrites=1 \
+            --use-secure=1 \
+            --use-secure-admin=1 \
             --language=en_US \
             --timezone=America/Los_Angeles \
             --db-host=$this->dbHost \
