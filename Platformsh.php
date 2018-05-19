@@ -47,6 +47,15 @@ class Platformsh
     protected $desiredApplicationMode;
 
     /**
+     * Platformsh constructor.
+     */
+    public function __construct()
+    {
+        // Use an environment variable to set the Debug parameter.
+        $this->debugMode = isset($_ENV['PLATFORMSH_DEBUG']) ? (bool) $_ENV['PLATFORMSH_DEBUG'] : false;
+    }
+
+    /**
      * Parse Platform.sh routes to more readable format.
      */
     public function initRoutes()
