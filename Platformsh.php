@@ -142,12 +142,7 @@ class Platformsh
             $this->log(sprintf('Copied directory: %s', $dir));
         }
 
-        if (!file_exists('app/etc/.installed')) {
-            $this->installMagento();
-            $this->desiredApplicationMode = self::MAGENTO_DEVELOPER_MODE;
-        } else {
-            $this->updateMagento();
-        }
+        $this->updateMagento();
         $this->processMagentoMode();
         $this->disableGoogleAnalytics();
     }
@@ -223,54 +218,11 @@ class Platformsh
     }
 
     /**
-     * Run Magento installation
-     */
-    protected function installMagento()
-    {
-        $this->log("File env.php does not exist. Installing Magento.");
-
-        $urlUnsecure = $this->urls['unsecure'][''];
-        $urlSecure = $this->urls['secure'][''];
-
-        $command =
-            "cd bin/; /usr/bin/php ./magento setup:install \
-            --session-save=db \
-            --cleanup-database \
-            --currency=$this->defaultCurrency \
-            --base-url=$urlUnsecure \
-            --base-url-secure=$urlSecure \
-            --use-rewrites=1 \
-            --use-secure=1 \
-            --use-secure-admin=1 \
-            --language=en_US \
-            --timezone=America/Los_Angeles \
-            --db-host=$this->dbHost \
-            --db-name=$this->dbName \
-            --db-user=$this->dbUser \
-            --backend-frontname=$this->adminUrl \
-            --admin-user=$this->adminUsername \
-            --admin-firstname=$this->adminFirstname \
-            --admin-lastname=$this->adminLastname \
-            --admin-email=$this->adminEmail \
-            --admin-password=$this->adminPassword";
-
-        if (strlen($this->dbPassword)) {
-            $command .= " \
-            --db-password=$this->dbPassword";
-        }
-
-        $this->execute($command);
-        
-        // Set the flag
-        touch('app/etc/.installed');
-    }
-
-    /**
      * Update Magento configuration
      */
     protected function updateMagento()
     {
-        $this->log("File env.php exists. Updating configuration.");
+        $this->log("Updating configuration.");
 
         $this->updateConfiguration();
 
