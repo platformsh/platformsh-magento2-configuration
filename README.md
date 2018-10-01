@@ -1,8 +1,10 @@
-# Magento 2 configuration for Platform.sh
+# THIS LIBRARY IS DEPRECATED. DO NOT USE IT ON NEW PROJECTS.
+
+## Magento 2 configuration for Platform.sh
 
 Provides configuration to deploy a Magento 2 project on Platform.sh
 
-## Project Variables
+### Project Variables
 
 This project relies on the following project variables being set prior to initial deploy.
 
@@ -16,7 +18,7 @@ This project relies on the following project variables being set prior to initia
 
 The latter can be changed at any time adjust the Application Mode on the next deploy.
 
-## Get via Composer
+### Get via Composer
 
 This package is available in [Packagist][1].
 
